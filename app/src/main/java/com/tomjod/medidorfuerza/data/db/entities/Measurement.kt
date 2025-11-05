@@ -2,6 +2,7 @@ package com.tomjod.medidorfuerza.data.db.entities
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.tomjod.medidorfuerza.data.db.entities.UserProfile
 
@@ -18,7 +19,9 @@ import com.tomjod.medidorfuerza.data.db.entities.UserProfile
             childColumns = ["profileId"],
             onDelete = ForeignKey.Companion.CASCADE // Si se borra un perfil, se borran sus mediciones
         )
-    ]
+    ],
+    indices = [Index(value = ["profileId"])]
+
 )
 data class Measurement(
     @PrimaryKey(autoGenerate = true)
