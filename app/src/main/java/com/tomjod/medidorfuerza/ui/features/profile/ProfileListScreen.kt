@@ -19,12 +19,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -61,6 +63,18 @@ fun ProfileListScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Perfiles de Atletas") },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            navController.navigate(Screen.BluetoothConfig.route)
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.Bluetooth,
+                            contentDescription = "Configurar Bluetooth"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -156,7 +170,7 @@ fun ProfileListItem(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${profile.edad} años",
+                    text = "${profile.edad} años • ${profile.sexo.displayName}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )

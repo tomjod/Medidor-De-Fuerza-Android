@@ -3,6 +3,7 @@ package com.tomjod.medidorfuerza.ui.features.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomjod.medidorfuerza.data.db.AppDao
+import com.tomjod.medidorfuerza.data.db.entities.Gender
 import com.tomjod.medidorfuerza.data.db.entities.UserProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,7 @@ data class ProfileCreationState(
     val nombre: String = "",
     val apellido: String = "",
     val edad: String = "",
+    val sexo: Gender = Gender.MASCULINO,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isSuccess: Boolean = false
@@ -75,6 +77,16 @@ class ProfileViewModel @Inject constructor(
     }
 
     /**
+     * Actualiza el sexo en el estado de creación
+     */
+    fun updateSexo(sexo: Gender) {
+        _creationState.value = _creationState.value.copy(
+            sexo = sexo,
+            errorMessage = null
+        )
+    }
+
+    /**
      * Valida y crea un nuevo perfil
      */
     fun createProfile() {
@@ -106,6 +118,7 @@ class ProfileViewModel @Inject constructor(
                     nombre = currentState.nombre.trim(),
                     apellido = currentState.apellido.trim(),
                     edad = edad,
+                    sexo = currentState.sexo,
                     fotoUri = null
                 )
                 appDao.insertProfile(newProfile)
@@ -130,4 +143,20 @@ class ProfileViewModel @Inject constructor(
         _creationState.value = ProfileCreationState()
     }
 
+    /**
+     * Crea un nuevo perfil de prueba.
+     */
+    fun createTestProfile() {
+        viewModelScope.launch {
+            val testProfile = UserProfile(
+                // Room generará el ID automáticamente
+                nombre = "Andrea",
+                apellido = "Zunino (Test)",
+                edad = 23,
+                sexo = Gender.FEMENINO,
+                fotoUri = null // TODO: Implementar selección de foto
+            )
+            appDao.insertProfile(testProfile)
+        }
+    }
 }

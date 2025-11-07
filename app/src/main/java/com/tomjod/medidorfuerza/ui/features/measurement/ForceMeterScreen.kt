@@ -35,6 +35,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.tomjod.medidorfuerza.data.ble.BleConnectionState
+import com.tomjod.medidorfuerza.data.db.entities.Gender
 import com.tomjod.medidorfuerza.data.db.entities.UserProfile
 
 // --- Define tus colores en ui/theme/Color.kt ---
@@ -141,6 +142,9 @@ fun ForceMeterScreen(
         is BleConnectionState.Disconnected -> "Desconectado" to StatusColorDisconnected
         is BleConnectionState.Scanning -> "Buscando..." to StatusColorConnecting
         is BleConnectionState.Error -> connectionState.message to StatusColorDisconnected
+        is BleConnectionState.BluetoothDisabled -> "Bluetooth Deshabilitado" to StatusColorDisconnected
+        is BleConnectionState.BluetoothNotSupported -> "Bluetooth LE No Soportado" to StatusColorDisconnected
+        is BleConnectionState.PermissionsRequired -> "Permisos Requeridos" to StatusColorDisconnected
     }
 
     val isConnected = connectionState is BleConnectionState.Connected
@@ -329,7 +333,7 @@ private fun ProfileHeader(
 @Composable
 fun ForceMeterScreenPreview_Connected() {
     ForceMeterScreen(
-        profile = UserProfile(id = 1, nombre = "Andrea", apellido = "Zunino", edad = 23, fotoUri = null),
+        profile = UserProfile(id = 1, nombre = "Andrea", apellido = "Zunino", edad = 23, fotoUri = null, sexo = Gender.FEMENINO),
         averageForce = 25.5f,
         connectionState = BleConnectionState.Connected,
         latestForce = 30.1f,
@@ -343,7 +347,7 @@ fun ForceMeterScreenPreview_Connected() {
 @Composable
 fun ForceMeterScreenPreview_Disconnected() {
     ForceMeterScreen(
-        profile = UserProfile(id = 1, nombre = "Andrea", apellido = "Zunino", edad = 23, fotoUri = null),
+        profile = UserProfile(id = 1, nombre = "Andrea", apellido = "Zunino", edad = 23, fotoUri = null, sexo = Gender.FEMENINO),
         averageForce = 25.5f,
         connectionState = BleConnectionState.Disconnected,
         latestForce = 0.0f,

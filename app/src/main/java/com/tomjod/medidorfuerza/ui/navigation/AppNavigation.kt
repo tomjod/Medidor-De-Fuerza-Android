@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.tomjod.medidorfuerza.ui.features.bluetooth.BluetoothConfigScreen
 import com.tomjod.medidorfuerza.ui.features.measurement.ForceMeterRoute
 import com.tomjod.medidorfuerza.ui.features.profile.ProfileCreateScreen
 import com.tomjod.medidorfuerza.ui.features.profile.ProfileListScreen
@@ -37,7 +38,14 @@ fun AppNavigation() {
             )
         }
 
-        // --- Pantalla 3: Medición ---
+        // --- Pantalla 3: Configuración Bluetooth ---
+        composable(route = Screen.BluetoothConfig.route) {
+            BluetoothConfigScreen(
+                navController = navController
+            )
+        }
+
+        // --- Pantalla 4: Medición ---
         composable(
             route = Screen.Measurement.route,
             arguments = listOf(

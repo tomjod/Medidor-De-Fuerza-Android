@@ -26,7 +26,7 @@ object AppModule {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "force_meter_db"
-            ).fallbackToDestructiveMigration(false) // Ojo: esto borra la DB en migraciones
+        ).fallbackToDestructiveMigration() // Ojo: esto borra la DB en migraciones
             .build()
     }
 

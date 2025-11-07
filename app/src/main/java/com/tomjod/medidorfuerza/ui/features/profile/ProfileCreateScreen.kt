@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -22,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -34,12 +36,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.tomjod.medidorfuerza.data.db.entities.Gender
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -169,6 +173,65 @@ fun ProfileCreateScreen(
                             keyboardType = KeyboardType.Number
                         )
                     )
+
+                    // Selector de Sexo
+                    Column {
+                        Text(
+                            text = "Sexo",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(24.dp)
+                        ) {
+                            // Opción Masculino
+                            Row(
+                                modifier = Modifier
+                                    .selectable(
+                                        selected = creationState.sexo == Gender.MASCULINO,
+                                        onClick = { viewModel.updateSexo(Gender.MASCULINO) },
+                                        role = Role.RadioButton
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = creationState.sexo == Gender.MASCULINO,
+                                    onClick = null, // Manejado por el selectable
+                                    enabled = !creationState.isLoading
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = Gender.MASCULINO.displayName,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+
+                            // Opción Femenino
+                            Row(
+                                modifier = Modifier
+                                    .selectable(
+                                        selected = creationState.sexo == Gender.FEMENINO,
+                                        onClick = { viewModel.updateSexo(Gender.FEMENINO) },
+                                        role = Role.RadioButton
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = creationState.sexo == Gender.FEMENINO,
+                                    onClick = null, // Manejado por el selectable
+                                    enabled = !creationState.isLoading
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = Gender.FEMENINO.displayName,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 

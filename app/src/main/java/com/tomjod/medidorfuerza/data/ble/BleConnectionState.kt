@@ -9,4 +9,9 @@ sealed class BleConnectionState {
     object Connecting : BleConnectionState()
     object Connected : BleConnectionState()
     data class Error(val message: String) : BleConnectionState()
+
+    // Nuevos estados para manejo de permisos y Bluetooth
+    object BluetoothDisabled : BleConnectionState()
+    object PermissionsRequired : BleConnectionState()
+    object BluetoothNotSupported : BleConnectionState()
 }

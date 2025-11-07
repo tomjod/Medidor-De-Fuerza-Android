@@ -2,6 +2,7 @@ package com.tomjod.medidorfuerza.data.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import com.tomjod.medidorfuerza.data.db.entities.Measurement
 import com.tomjod.medidorfuerza.data.db.entities.UserProfile
 
@@ -11,9 +12,10 @@ import com.tomjod.medidorfuerza.data.db.entities.UserProfile
  */
 @Database(
     entities = [UserProfile::class, Measurement::class],
-    version = 1, // Si cambias la estructura de las tablas, debes incrementar esta versión
-    exportSchema = false // No exportamos el esquema por ahora
+    version = 2,
+    exportSchema = false
 )
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     // Room implementará esta función abstracta por nosotros.
