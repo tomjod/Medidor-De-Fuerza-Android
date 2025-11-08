@@ -3,8 +3,10 @@ package com.tomjod.medidorfuerza.ui.features.bluetooth
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.ManagedActivityResultLauncher
@@ -110,5 +112,61 @@ class BluetoothPermissionManager(private val context: Context) {
             Manifest.permission.ACCESS_FINE_LOCATION -> "Ubicación precisa"
             else -> permission
         }
+    }
+
+    // BroadcastReceiver para escuchar cambios en el estado del adaptador Bluetooth
+    private var stateReceiver: BroadcastReceiver? = null
+    private var isReceiverRegistered: Boolean = false
+
+    /**
+     * Listener para notificar cambios de estado de Bluetooth (incluye permisos)
+     */
+    interface BluetoothStateListener {
+        fun onStateChanged(state: BleConnectionState)
+    }
+
+    /**
+     * Lanza el Intent para pedir al usuario que active Bluetooth usando un launcher de ActivityResult.
+     */
+    fun requestEnableBluetooth(launcher: ManagedActivityResultLauncher<Intent, Boolean>) {
+        launcher.launch(createEnableBluetoothIntent())
+    }
+
+    /**
+     * Registra un listener que será notificado cuando cambie el estado del adaptador Bluetooth.
+     * Llama inmediatamente con el estado actual.
+     */
+    fun registerStateListener(listener: BluetoothStateListener) {
+        if (isReceiverRegistered) {
+            // ya registrado; notificar estado actual
+            listener.onStateChanged(getCurrentBluetoothState())
+            return
+        }
+
+        stateReceiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                if (intent?.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
+                    // Al cambiar el estado del adaptador, recalcular y notificar
+                    listener.onStateChanged(getCurrentBluetoothState())
+                }
+            }
+        }
+
+        val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
+        context.registerReceiver(stateReceiver, filter)
+        isReceiverRegistered = true
+
+        // Notificar estado actual inmediatamente
+        listener.onStateChanged(getCurrentBluetoothState())
+    }
+
+    /**
+     * Desregistra el listener para evitar fugas.
+     */
+    fun unregisterStateListener() {
+        if (!isReceiverRegistered) return
+        stateReceiver?.let { context.unregisterReceiver(it) }
+        stateReceiver = null
+        isReceiverRegistered = false
     }
 }
