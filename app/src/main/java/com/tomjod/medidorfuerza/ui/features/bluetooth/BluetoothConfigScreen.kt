@@ -95,9 +95,9 @@ fun BluetoothConfigScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         },
@@ -169,9 +169,9 @@ private fun DeviceInfoCard(
         elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(
             containerColor = when (connectionState) {
-                is BleConnectionState.Connected -> MaterialTheme.colorScheme.primaryContainer
-                is BleConnectionState.Connecting -> MaterialTheme.colorScheme.secondaryContainer
-                else -> MaterialTheme.colorScheme.surfaceVariant
+                is BleConnectionState.Connected -> MaterialTheme.colorScheme.surface
+                is BleConnectionState.Connecting -> MaterialTheme.colorScheme.surface
+                else -> MaterialTheme.colorScheme.surface
             }
         )
     ) {
@@ -402,7 +402,7 @@ private fun DeviceControlCard(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
@@ -471,7 +471,7 @@ private fun TechnicalInfoCard() {
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(1.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
@@ -486,7 +486,7 @@ private fun TechnicalInfoCard() {
 
             val technicalSpecs = listOf(
                 "Dispositivo" to "ESP32 con sensor de fuerza",
-                "Protocolo" to "Bluetooth Low Energy (BLE)",
+                "Protocolo" to "Bluetooth Classic (SPP)",
                 "Rango" to "0 - 1000 N (configurable)",
                 "Precisión" to "±0.1 N",
                 "Frecuencia" to "10 Hz de muestreo"
