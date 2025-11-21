@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.tomjod.medidorfuerza.data.db.AppDao
 import com.tomjod.medidorfuerza.data.db.AppDatabase
+import com.tomjod.medidorfuerza.domain.export.CsvExporter
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -40,5 +41,13 @@ object AppModule {
         return db.appDao()
     }
 
+    /**
+     * Provee el exportador de CSV.
+     */
+    @Provides
+    @Singleton
+    fun provideCsvExporter(): CsvExporter {
+        return CsvExporter()
+    }
 }
 

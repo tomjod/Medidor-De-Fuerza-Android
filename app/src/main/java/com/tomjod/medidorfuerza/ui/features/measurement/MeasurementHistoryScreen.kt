@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +35,24 @@ fun MeasurementHistoryScreen(
     viewModel: MeasurementHistoryViewModel = hiltViewModel()
 ) {
     val measurements by viewModel.measurements.collectAsStateWithLifecycle()
+    val exportState by viewModel.exportState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Mostrar feedback de exportación
+    LaunchedEffect(exportState) {
+        when (exportState) {
+            is ExportState.Success -> {
+                snackbarHostState.showSnackbar("✓ Archivo exportado correctamente")
+                viewModel.resetExportState()
+            }
+            is ExportState.Error -> {
+                val message = (exportState as ExportState.Error).message
+                snackbarHostState.showSnackbar("Error: $message")
+                viewModel.resetExportState()
+            }
+            else -> {}
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -44,12 +63,34 @@ fun MeasurementHistoryScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
+                actions = {
+                    // Botón de exportar (solo si hay mediciones)
+                    if (measurements.isNotEmpty()) {
+                        IconButton(
+                            onClick = { viewModel.exportMeasurements() },
+                            enabled = exportState !is ExportState.Loading
+                        ) {
+                            if (exportState is ExportState.Loading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = "Exportar CSV"
+                                )
+                            }
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         if (measurements.isEmpty()) {
             // Estado vacío
