@@ -307,6 +307,11 @@ fun MeasurementDataColumn(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
+            // Spacer para mantener la misma altura que las otras columnas
+            Text(
+                text = " ",
+                style = MaterialTheme.typography.bodySmall
+            )
         } else {
             // Mostrar promedio y máximo
             Text(

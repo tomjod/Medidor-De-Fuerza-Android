@@ -413,7 +413,7 @@ private fun DeviceControlCard(
                 text = "⚙️ Controles del Dispositivo",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp),
+                modifier = Modifier.padding(bottom = 16.dp).fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
 
@@ -433,7 +433,9 @@ private fun DeviceControlCard(
                         Text(
                             text = "Lectura Actual",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
                         Text(
                             text = "Ratio: ${String.format(Locale.getDefault(), "%.2f", forceData.ratio)}",

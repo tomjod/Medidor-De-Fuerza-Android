@@ -81,19 +81,25 @@ fun MetricCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelMedium,
-                color = TextSecondary
+                color = TextSecondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = TextPrimary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
             Text(
                 text = unit,
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
@@ -335,7 +341,7 @@ fun ForceMeterScreen(
                 )
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             
             // Measurement count and history link
             Row(
@@ -358,7 +364,7 @@ fun ForceMeterScreen(
             
             // Session info (if active)
             currentSession?.let { session ->
-                Spacer(modifier = Modifier.height(8.dp))
+                //Spacer(modifier = Modifier.height(1.dp))
                 Surface(
                     color = PrimaryAccent.copy(alpha = 0.1f),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
