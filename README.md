@@ -10,6 +10,15 @@ Este proyecto fue desarrollado como parte de una tesis de grado, con el objetivo
 
 ---
 
+## 📥 Descargar APK
+
+**Versión actual:** v1.0.0  
+**Descarga directa:** [ForceMetrics-v1.0.0-debug.apk](releases/ForceMetrics-v1.0.0-debug.apk)
+
+Para más información sobre la instalación y notas de la versión, consulta la [documentación de releases](releases/README.md).
+
+---
+
 ## 🎯 Objetivos del Proyecto
 
 ### Objetivo General
