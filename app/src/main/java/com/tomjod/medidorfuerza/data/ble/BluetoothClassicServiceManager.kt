@@ -10,14 +10,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import java.io.IOException
 import java.io.InputStream
 import java.nio.ByteBuffer
@@ -42,6 +41,7 @@ class BluetoothClassicServiceManager @Inject constructor(
         const val ACK = 0x06.toByte()
         
         const val DEVICE_NAME = "ESP32_Fuerza_HQ"
+        private const val TAG = "BleServiceManager"
     }
 
     private val _connectionState = MutableStateFlow<BleConnectionState>(BleConnectionState.Disconnected)
@@ -70,19 +70,12 @@ class BluetoothClassicServiceManager @Inject constructor(
                     @Suppress("DEPRECATION")
                     intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                 }
-                // For now, we just log or could auto-connect if we had a target name.
-                // But the current UI expects a list or auto-connect logic.
-                // The current BleServiceManager connects to the first device found in scan?
-                // Let's check BleServiceManager. It connects to the first device found!
-                // "connectToDevice(result.device)" inside onScanResult.
                 
                 device?.let {
-                    // Check if it's the ESP32 (optional: filter by name if known, e.g. "ESP32")
-                    // For now, we connect to the first device found to mimic previous behavior,
-                    // or we could check for a specific name if the user provided one.
-                    // Given the user didn't specify a name, we might want to be careful.
-                    // But to match previous behavior:
+                    Log.d(TAG, "Device found: ${it.name} - ${it.address}")
+                    // Check if it's the ESP32
                     if (it.name == DEVICE_NAME && _connectionState.value == BleConnectionState.Scanning) {
+                        Log.d(TAG, "Target device found via discovery. Connecting...")
                         bluetoothAdapter?.cancelDiscovery()
                         connect(it)
                     }
@@ -98,6 +91,19 @@ class BluetoothClassicServiceManager @Inject constructor(
         }
 
         _connectionState.value = BleConnectionState.Scanning
+        
+        // 1. First, check paired devices (Faster and more reliable)
+        val pairedDevices = bluetoothAdapter?.bondedDevices
+        val targetDevice = pairedDevices?.find { it.name == DEVICE_NAME }
+        
+        if (targetDevice != null) {
+            Log.d(TAG, "Target device found in paired devices. Connecting directly...")
+            connect(targetDevice)
+            return
+        }
+
+        // 2. If not paired, start discovery
+        Log.d(TAG, "Target device not paired. Starting discovery...")
         
         // Register receiver
         val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
@@ -173,35 +179,72 @@ class BluetoothClassicServiceManager @Inject constructor(
     }
 
     private inner class ConnectThread(private val device: BluetoothDevice) : Thread() {
-        private val mmSocket: BluetoothSocket? by lazy(LazyThreadSafetyMode.NONE) {
-            device.createRfcommSocketToServiceRecord(SPP_UUID)
-        }
+        private var socket: BluetoothSocket? = null
 
         override fun run() {
             bluetoothAdapter?.cancelDiscovery()
+            var success = false
 
+            // Strategy 1: Secure RFCOMM
             try {
-                mmSocket?.connect()
+                Log.d(TAG, "Attempting Secure RFCOMM connection...")
+                socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+                socket?.connect()
+                success = true
             } catch (e: IOException) {
-                _connectionState.value = BleConnectionState.Error("Connection failed: ${e.message}")
+                Log.w(TAG, "Secure RFCOMM failed: ${e.message}")
                 try {
-                    mmSocket?.close()
-                } catch (e2: IOException) {
-                    // Ignore
-                }
-                return
+                    socket?.close()
+                } catch (e2: IOException) { /* Ignore */ }
             }
 
-            mmSocket?.let { socket ->
-                connectedThread = ConnectedThread(socket)
-                connectedThread?.start()
-                _connectionState.value = BleConnectionState.Connected
+            // Strategy 2: Insecure RFCOMM (Fallback)
+            if (!success) {
+                try {
+                    Log.d(TAG, "Attempting Insecure RFCOMM connection...")
+                    socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
+                    socket?.connect()
+                    success = true
+                } catch (e: IOException) {
+                    Log.w(TAG, "Insecure RFCOMM failed: ${e.message}")
+                    try {
+                        socket?.close()
+                    } catch (e2: IOException) { /* Ignore */ }
+                }
+            }
+
+            // Strategy 3: Reflection (Last Resort)
+            if (!success) {
+                try {
+                    Log.d(TAG, "Attempting Reflection connection...")
+                    val m = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+                    socket = m.invoke(device, 1) as BluetoothSocket
+                    socket?.connect()
+                    success = true
+                } catch (e: Exception) {
+                    Log.e(TAG, "Reflection failed: ${e.message}")
+                    try {
+                        socket?.close()
+                    } catch (e2: IOException) { /* Ignore */ }
+                }
+            }
+
+            if (success) {
+                Log.d(TAG, "Connection successful!")
+                socket?.let {
+                    connectedThread = ConnectedThread(it)
+                    connectedThread?.start()
+                    _connectionState.value = BleConnectionState.Connected
+                }
+            } else {
+                Log.e(TAG, "All connection attempts failed.")
+                _connectionState.value = BleConnectionState.Error("No se pudo conectar. Asegúrate de que el ESP32 esté encendido y emparejado.")
             }
         }
 
         fun cancel() {
             try {
-                mmSocket?.close()
+                socket?.close()
             } catch (e: IOException) {
                 // Ignore
             }
@@ -211,11 +254,8 @@ class BluetoothClassicServiceManager @Inject constructor(
     private inner class ConnectedThread(private val socket: BluetoothSocket) : Thread() {
         private val mmInStream: InputStream = socket.inputStream
         private val mmOutStream = socket.outputStream
-        private val buffer = ByteArray(1024)
-
+        
         override fun run() {
-            var numBytes: Int
-            
             // State machine for parsing
             // STX (1) + LEN (1) + Payload (8) + Checksum (1) + ETX (1) = 12 bytes total
             val packetSize = 12
@@ -236,8 +276,7 @@ class BluetoothClassicServiceManager @Inject constructor(
                                 state = 1
                             } else if (byte.toByte() == ACK) {
                                 // Handle ACK (e.g. Tare successful)
-                                // For now we can just log it or maybe emit a one-shot event if we had that infrastructure
-                                println("ACK received")
+                                Log.d(TAG, "ACK received")
                             }
                         }
                         1 -> { // Reading rest
@@ -262,6 +301,7 @@ class BluetoothClassicServiceManager @Inject constructor(
                         }
                     }
                 } catch (e: IOException) {
+                    Log.e(TAG, "Connection lost: ${e.message}")
                     _connectionState.value = BleConnectionState.Disconnected
                     break
                 }
@@ -294,7 +334,7 @@ class BluetoothClassicServiceManager @Inject constructor(
             try {
                 mmOutStream.write(bytes)
             } catch (e: IOException) {
-                // Error writing
+                Log.e(TAG, "Error writing to stream", e)
             }
         }
 

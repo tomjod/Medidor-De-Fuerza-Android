@@ -183,7 +183,6 @@ fun ForceMeterRoute(
     viewModel: ForceMeterViewModel = hiltViewModel()
 ) {
     // --- Colectamos los estados del ViewModel ---
-    // Usamos collectAsStateWithLifecycle para seguridad en el ciclo de vida.
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val measurementCount by viewModel.measurementCount.collectAsStateWithLifecycle()
     val connectionState by viewModel.connectionState.collectAsStateWithLifecycle()
@@ -197,26 +196,6 @@ fun ForceMeterRoute(
     val capturedCuads by viewModel.capturedCuads.collectAsStateWithLifecycle()
     val selectedLeg by viewModel.selectedLeg.collectAsStateWithLifecycle()
 
-    // --- Lógica de Permisos de Bluetooth ---
-    val context = LocalContext.current
-    val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
-    } else {
-        arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_FINE_LOCATION)
-    }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        if (permissions.values.all { it }) {
-            // Si los permisos fueron concedidos AHORA, iniciamos el escaneo.
-            viewModel.onEvent(MeasurementEvent.ConnectClicked)
-        } else {
-            // TODO: Mostrar un SnackBar o mensaje al usuario indicando que
-            // los permisos son necesarios para conectar.
-        }
-    }
-
     ForceMeterScreen(
         profile = profile,
         measurementCount = measurementCount,
@@ -228,22 +207,12 @@ fun ForceMeterRoute(
         capturedIsquios = capturedIsquios,
         capturedCuads = capturedCuads,
         selectedLeg = selectedLeg,
-        onEvent = viewModel::onEvent, // Pasamos la función de eventos directamente
+        onEvent = viewModel::onEvent,
         onNavigateBack = {
             navController.navigateUp()
         },
-        onConnectClick = {
-            // Esta lambda especial maneja la lógica de permisos
-            val allGranted = requiredPermissions.all {
-                ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
-            }
-            if (allGranted) {
-                // Si ya tenemos permisos, escaneamos.
-                viewModel.onEvent(MeasurementEvent.ConnectClicked)
-            } else {
-                // Si no, pedimos permisos.
-                permissionLauncher.launch(requiredPermissions)
-            }
+        onGoToBluetoothConfig = {
+            navController.navigate(com.tomjod.medidorfuerza.ui.navigation.Screen.BluetoothConfig.route)
         },
         onViewHistory = {
             profile?.let {
@@ -257,13 +226,6 @@ fun ForceMeterRoute(
 
 // --- 2. COMPOSABLE STATELESS (SIN LÓGICA, SOLO UI) ---
 
-/**
- * Este es el composable "tonto" o "de presentación".
- * - No sabe nada sobre el ViewModel.
- * - Recibe todos los datos como parámetros.
- * - Devuelve todos los eventos a través de lambdas (onEvent, onNavigateBack, etc.).
- * - Es 100% previsualizable en el editor de Compose.
- */
 @Composable
 fun ForceMeterScreen(
     profile: UserProfile?,
@@ -278,12 +240,11 @@ fun ForceMeterScreen(
     selectedLeg: String?,
     onEvent: (MeasurementEvent) -> Unit,
     onNavigateBack: () -> Unit,
-    onConnectClick: () -> Unit,
+    onGoToBluetoothConfig: () -> Unit,
     onViewHistory: () -> Unit,
     onResetSaveSuccess: () -> Unit
 ) {
     // --- Lógica de UI (derivación de estado) ---
-    // Derivamos el texto y color del estado de conexión.
     val (statusText, statusColor) = when (connectionState) {
         is BleConnectionState.Connected -> "¡Conectado!" to StatusColorConnected
         is BleConnectionState.Connecting -> "Conectando..." to StatusColorConnecting
@@ -375,7 +336,7 @@ fun ForceMeterScreen(
                     Text(
                         text = statusText,
                         color = statusColor,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
@@ -639,7 +600,7 @@ fun ForceMeterScreen(
             } else {
                 // --- DISCONNECTED UI ---
                 ConnectDeviceView(
-                    onConnectClick = onConnectClick,
+                    onGoToBluetoothConfig = onGoToBluetoothConfig,
                     onViewHistory = onViewHistory,
                     measurementCount = measurementCount
                 )
@@ -650,7 +611,7 @@ fun ForceMeterScreen(
 
 @Composable
 fun ConnectDeviceView(
-    onConnectClick: () -> Unit,
+    onGoToBluetoothConfig: () -> Unit,
     onViewHistory: () -> Unit,
     measurementCount: Int
 ) {
@@ -698,14 +659,14 @@ fun ConnectDeviceView(
         Spacer(modifier = Modifier.height(48.dp))
         
         Button(
-            onClick = onConnectClick,
+            onClick = onGoToBluetoothConfig,
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryAccent),
             shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
         ) {
-            Text("CONECTAR DISPOSITIVO", color = Color.White, fontWeight = FontWeight.Bold)
+            Text("IR A CONFIGURACIÓN BLUETOOTH", color = Color.White, fontWeight = FontWeight.Bold)
         }
         
         Spacer(modifier = Modifier.weight(1f))
@@ -982,7 +943,7 @@ fun ForceMeterScreenPreview_Connected() {
         selectedLeg = null,
         onEvent = {},
         onNavigateBack = {},
-        onConnectClick = {},
+        onGoToBluetoothConfig = {},
         onViewHistory = {},
         onResetSaveSuccess = {}
     )
@@ -1004,7 +965,7 @@ fun ForceMeterScreenPreview_Disconnected() {
         selectedLeg = null,
         onEvent = {},
         onNavigateBack = {},
-        onConnectClick = {},
+        onGoToBluetoothConfig = {},
         onViewHistory = {},
         onResetSaveSuccess = {}
     )

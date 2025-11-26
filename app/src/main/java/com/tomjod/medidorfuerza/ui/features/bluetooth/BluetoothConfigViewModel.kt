@@ -75,7 +75,10 @@ class BluetoothConfigViewModel @Inject constructor(
     fun startScan() {
         checkBluetoothStatus()
 
-        when (_bluetoothState.value) {
+        // Set scanning state immediately for UI feedback
+        _bluetoothState.value = BleConnectionState.Scanning
+        
+        when (val currentState = permissionManager.getCurrentBluetoothState()) {
             is BleConnectionState.Disconnected -> {
                 bleRepository.startScan()
             }
@@ -86,15 +89,18 @@ class BluetoothConfigViewModel @Inject constructor(
             }
 
             is BleConnectionState.PermissionsRequired -> {
-                // El estado ya está establecido, la UI manejará la solicitud de permisos
+                // Revert to PermissionsRequired so UI can show the button
+                _bluetoothState.value = currentState
             }
 
             is BleConnectionState.BluetoothDisabled -> {
-                // El estado ya está establecido, la UI manejará la habilitación de Bluetooth
+                // Revert to BluetoothDisabled so UI can show the button
+                _bluetoothState.value = currentState
             }
 
             else -> {
                 // Ya está escaneando o conectado
+                bleRepository.startScan()
             }
         }
     }

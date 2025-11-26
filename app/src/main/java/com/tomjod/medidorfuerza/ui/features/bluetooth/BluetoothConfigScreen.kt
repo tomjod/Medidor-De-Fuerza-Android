@@ -69,20 +69,43 @@ fun BluetoothConfigScreen(
     val connectionState by viewModel.connectionState.collectAsStateWithLifecycle()
     val forceData by viewModel.forceData.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
-    // Mostrar mensajes de error como Snackbar
-    LaunchedEffect(connectionState) {
-        val currentState = connectionState
-        if (currentState is BleConnectionState.Error) {
-            snackbarHostState.showSnackbar(currentState.message)
+    // Launcher for permissions
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        viewModel.onPermissionsResult(permissions)
+    }
+
+    // Launcher for enabling Bluetooth
+    val enableBtLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { _ ->
+        viewModel.onBluetoothStateChanged()
+    }
+
+    // Auto-request permissions and enable Bluetooth
+    LaunchedEffect(Unit) {
+        val missingPermissions = viewModel.getMissingPermissions()
+        if (missingPermissions.isNotEmpty()) {
+            requestPermissionLauncher.launch(missingPermissions.toTypedArray())
+        } else {
+            // Check Bluetooth status initially
+            viewModel.checkBluetoothStatus()
         }
     }
 
-    val enableBt = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { _ ->
-        // Notify ViewModel to re-evaluate Bluetooth/permission state after the user responds
-        viewModel.onBluetoothStateChanged()
+    // React to state changes for auto-enabling Bluetooth
+    LaunchedEffect(connectionState) {
+        if (connectionState is BleConnectionState.BluetoothDisabled) {
+             // Auto-prompt to enable Bluetooth if disabled
+             enableBtLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+        }
+        
+        if (connectionState is BleConnectionState.Error) {
+            snackbarHostState.showSnackbar((connectionState as BleConnectionState.Error).message)
+        }
     }
 
     Scaffold(
@@ -115,7 +138,16 @@ fun BluetoothConfigScreen(
                 ConnectionStatusCard(
                     connectionState = connectionState,
                     onScanClick = viewModel::startScan,
-                    onDisconnectClick = viewModel::disconnect
+                    onDisconnectClick = viewModel::disconnect,
+                    onEnableBluetoothClick = {
+                        enableBtLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                    },
+                    onRequestPermissionsClick = {
+                        val missing = viewModel.getMissingPermissions()
+                        if (missing.isNotEmpty()) {
+                            requestPermissionLauncher.launch(missing.toTypedArray())
+                        }
+                    }
                 )
             }
 
@@ -133,131 +165,17 @@ fun BluetoothConfigScreen(
                 // Información técnica
                 TechnicalInfoCard()
             }
-
-            // Show enable-Bluetooth button reactively when ViewModel reports BluetoothDisabled
-            item {
-                if (connectionState is BleConnectionState.BluetoothDisabled) {
-                    Button(
-                        onClick = {
-                            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                            enableBt.launch(enableBtIntent)
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Filled.Bluetooth, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Activar Bluetooth")
-                    }
-                }
-            }
         }
     }
 }
-
-/*
-// Función comentada - ya no se usa porque duplicaba información
-@Composable
-private fun DeviceInfoCard(
-    connectionState: BleConnectionState,
-    forceData: ForceReadings?
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = when (connectionState) {
-                is BleConnectionState.Connected -> MaterialTheme.colorScheme.surface
-                is BleConnectionState.Connecting -> MaterialTheme.colorScheme.surface
-                else -> MaterialTheme.colorScheme.surface
-            }
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Icono de estado
-            val (icon, iconColor, statusText) = when (connectionState) {
-                is BleConnectionState.Connected -> Triple(
-                    Icons.Filled.BluetoothConnected,
-                    MaterialTheme.colorScheme.primary,
-                    "Dispositivo ESP32 Conectado"
-                )
-
-                is BleConnectionState.Connecting -> Triple(
-                    Icons.AutoMirrored.Filled.BluetoothSearching,
-                    MaterialTheme.colorScheme.secondary,
-                    "Conectando..."
-                )
-
-                is BleConnectionState.Scanning -> Triple(
-                    Icons.AutoMirrored.Filled.BluetoothSearching,
-                    MaterialTheme.colorScheme.secondary,
-                    "Buscando dispositivos..."
-                )
-
-                is BleConnectionState.Error -> Triple(
-                    Icons.Filled.BluetoothDisabled,
-                    MaterialTheme.colorScheme.error,
-                    "Error de conexión"
-                )
-
-                else -> Triple(
-                    Icons.Filled.Bluetooth,
-                    MaterialTheme.colorScheme.onSurfaceVariant,
-                    "Desconectado"
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(iconColor.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconColor,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = statusText,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-
-            if (forceData != null) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "Ratio: ${String.format(Locale.getDefault(), "%.2f", forceData.ratio)}",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Isquios: ${String.format(Locale.getDefault(), "%.1f", forceData.isquios)} / Cuads: ${String.format(Locale.getDefault(), "%.1f", forceData.cuads)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-*/
 
 @Composable
 private fun ConnectionStatusCard(
     connectionState: BleConnectionState,
     onScanClick: () -> Unit,
-    onDisconnectClick: () -> Unit
+    onDisconnectClick: () -> Unit,
+    onEnableBluetoothClick: () -> Unit,
+    onRequestPermissionsClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -300,31 +218,26 @@ private fun ConnectionStatusCard(
                     }
                 }
 
-                is BleConnectionState.Scanning -> {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                is BleConnectionState.Scanning, is BleConnectionState.Connecting -> {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(12.dp))
+                        CircularProgressIndicator(modifier = Modifier.size(48.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Buscando dispositivos ESP32 cercanos...",
-                            style = MaterialTheme.typography.bodyMedium
+                            text = if (connectionState is BleConnectionState.Scanning) "Buscando dispositivos..." else "Conectando...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
-
-                is BleConnectionState.Connecting -> {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                    // Disable button to prevent multiple clicks
+                    Button(
+                        onClick = {},
+                        enabled = false,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "Estableciendo conexión con el dispositivo...",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Text("Procesando...")
                     }
                 }
 
@@ -367,6 +280,14 @@ private fun ConnectionStatusCard(
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
+                    Button(
+                        onClick = onEnableBluetoothClick,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Filled.Bluetooth, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Activar Bluetooth")
+                    }
                 }
 
                 is BleConnectionState.PermissionsRequired -> {
@@ -376,6 +297,12 @@ private fun ConnectionStatusCard(
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
+                    Button(
+                        onClick = onRequestPermissionsClick,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Conceder Permisos")
+                    }
                 }
 
                 is BleConnectionState.BluetoothNotSupported -> {
