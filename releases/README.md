@@ -1,5 +1,30 @@
 # ForceMetrics - Releases
 
+## v1.1.1 (26 de Noviembre 2024)
+
+### 📦 APK Disponible
+
+**Archivo:** `ForceMetrics-v1.1.1-debug.apk`  
+**Descarga:** [GitHub Release v1.1.1](https://github.com/tomjod/Medidor-De-Fuerza-Android/releases/tag/v1.1.1)  
+**Tipo:** Debug APK  
+
+### ✨ Novedades y Mejoras
+
+#### 🔌 Conexión Bluetooth Robusta
+- **Prioridad a Emparejados**: Conexión instantánea si el dispositivo ya está emparejado.
+- **Multi-Estrategia**: Si falla la conexión segura, intenta automáticamente métodos alternativos (inseguro, reflexión) para garantizar la compatibilidad con más dispositivos.
+
+#### 📱 Experiencia de Usuario (UX)
+- **Permisos Automáticos**: La app solicita los permisos necesarios al abrirse, evitando errores posteriores.
+- **Auto-Activación Bluetooth**: Si el Bluetooth está apagado, la app te guía para activarlo sin salir.
+- **Navegación Inteligente**: El botón "Conectar" te lleva directamente a la configuración si no hay conexión.
+
+#### 🎨 Interfaz (UI)
+- **Corrección Visual**: Ajuste de márgenes superiores para evitar que la barra de estado cubra el nombre del atleta en teléfonos con navegación por gestos.
+- **Flujo Guiado**: Selección explícita de pierna (Izquierda/Derecha) y pasos claros para Isquios y Cuádriceps.
+
+---
+
 ## v1.0.0 (21 de Noviembre 2024)
 
 ### 📦 APK Disponible
